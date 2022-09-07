@@ -1,0 +1,129 @@
+---
+title: "Middle-Middle Pitches Leaders"
+author: "Riley Feltner"
+date: "7/30/2022"
+output: html_document
+---
+
+```{r}
+library(baseballr)
+ls("package:baseballr")
+```
+
+```{r}
+library(devtools)
+
+
+date04070413 <- baseballr::scrape_statcast_savant(start_date = '2022-04-07',
+                                  end_date = '2022-04-13', player_type = 'pitcher')
+
+date04140420 <- baseballr::scrape_statcast_savant(start_date = '2022-04-14',
+                                  end_date = '2022-04-20', player_type = 'pitcher')
+
+date04210427 <- baseballr::scrape_statcast_savant(start_date = '2022-04-21',
+                                  end_date = '2022-04-27', player_type = 'pitcher')
+
+date04280504 <- baseballr::scrape_statcast_savant(start_date = '2022-04-28',
+                                  end_date = '2022-05-04', player_type = 'pitcher')
+
+date05050511 <- baseballr::scrape_statcast_savant(start_date = '2022-05-05',
+                                  end_date = '2022-05-11', player_type = 'pitcher')
+
+date05120518 <- baseballr::scrape_statcast_savant(start_date = '2022-05-12',
+                                  end_date = '2022-05-18', player_type = 'pitcher')
+
+date05190525 <- baseballr::scrape_statcast_savant(start_date = '2022-05-19',
+                                  end_date = '2022-05-25', player_type = 'pitcher')
+
+date05260601 <- baseballr::scrape_statcast_savant(start_date = '2022-05-26',
+                                  end_date = '2022-06-01', player_type = 'pitcher')
+
+date06010607 <- baseballr::scrape_statcast_savant(start_date = '2022-06-01',
+                                  end_date = '2022-06-07', player_type = 'pitcher')
+
+date06080614 <- baseballr::scrape_statcast_savant(start_date = '2022-06-08',
+                                  end_date = '2022-06-14', player_type = 'pitcher')
+
+date06150621 <- baseballr::scrape_statcast_savant(start_date = '2022-06-15',
+                                  end_date = '2022-06-21', player_type = 'pitcher')
+
+date06220628 <- baseballr::scrape_statcast_savant(start_date = '2022-06-22',
+                                  end_date = '2022-06-28', player_type = 'pitcher')
+
+date06290705 <- baseballr::scrape_statcast_savant(start_date = '2022-06-29',
+                                  end_date = '2022-07-05', player_type = 'pitcher')
+
+date07060712 <- baseballr::scrape_statcast_savant(start_date = '2022-07-06',
+                                  end_date = '2022-07-12', player_type = 'pitcher')
+
+date07130717 <- baseballr::scrape_statcast_savant(start_date = '2022-07-13',
+                                  end_date = '2022-07-17', player_type = 'pitcher')
+
+date07220729 <- baseballr::scrape_statcast_savant(start_date = '2022-07-22',
+                                  end_date = '2022-07-29', player_type = 'pitcher')
+
+Savantdata22 <- rbind(date04070413,date04140420, date04210427, date04280504, date05050511, date05120518, date05190525, date05260601, date06010607, date06080614, date06150621, date06220628, date06290705, date07060712, date07130717, date07220729)
+```
+
+#write to a csv
+```{r}
+write.csv(Savantdata22, "MySavantPitching22.csv", row.names = F)
+Savantdata22 = read.csv("MySavantPitching22.csv", stringsAsFactors = F)
+```
+
+#write to a database, query database
+```{r}
+#install.packages("RSQLite")
+#install.packages("DBI")
+
+library(RSQLite)
+library(DBI)
+
+#Write to a database
+db = dbConnect(SQLite(), dbname = "Statcast.sqlite")
+dbWriteTable(conn = db, name = "Statcast_Pitching", Savantdata22, overwrite = T, row.names = F)
+
+#query database
+dbGetQuery(conn = db, "SELECT * FROM Statcast_Pitching LIMIT 5")
+
+Savantdata22 = dbGetQuery(conn = db, "SELECT * FROM Statcast_Pitching")
+
+
+#Query
+zone <- Savantdata22 %>% 
+  select(player_name, zone, pitcher)%>%
+  filter(zone == "5") %>%
+  group_by(player_name, pitcher) %>%
+  summarize(zone=n()) %>%
+  arrange(desc(zone))
+  
+
+zonedf <- as.data.frame(zone)
+zonedf1 <- zonedf[c(1:5),]
+zonedf2 <- as.data.frame(zonedf1)
+
+
+mydata1 <- read.csv("zones.csv") #I just made a new CSV here. Didn't know how to add a new column for team at the time. LOL... Learning as I go!
+```
+
+
+```{r}
+library(mlbplotR)
+library(ggplot2)
+library(dplyr)
+  
+
+ggplot(mydata1, aes(x = player_name, y = zone)) +
+  geom_col(aes(color = team, fill = team), width = 0.7)+ 
+  scale_color_mlb(type = "secondary")+
+  scale_fill_mlb(alpha = 0.4)+
+  ggplot2::labs(x = "", y = "Pitches in Zone 5",
+                title = "Pitchers with the Most 'Middle-Middle' Pitches",
+                caption = "Data: Baseball Savant | Riley Feltner",
+                subtitle = "MLB 2022") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = element_text(face = "bold"),
+                 panel.grid.major.x = element_blank())
+```
+
+
